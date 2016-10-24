@@ -1,0 +1,6 @@
+require_relative './course'
+require_relative './folder'
+require_relative './file'
+require_relative './videourl'
+require_relative './keyword'
+require_relative './subtitle'

@@ -1,0 +1,4 @@
+config/config_env.rb
+db/*.*
+.bundle/
+.DS_Store
