@@ -8,22 +8,29 @@ class KeywordCloudAPI < Sinatra::Base
       halt 401 unless authorized_account?(env, uid)
       coursename = Course.where(id: course_id).first.course_name
       keyword = Hash.new
-      chap_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id]).all
-      folderInfo = chap_folder.map do |f|
+      slide_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'slides').all
+      slideInfo = slide_folder.map do |f|
         keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
         keyword[f.id]
+      end
+      concept_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'concepts').all
+      conceptInfo = []
+      concept_folder.map do |f|
+        content = ConceptSegment.call(folder_id: f.id)
+        if content.any?
+          conceptInfo.push(content)
+        end
       end
       info = keyword.map do |id, s|
         if s.any?
           chapter_id = Folder[id].chapter_id
           folder_type = Folder[id].folder_type
-          if folder_type == 'slides'
-            priority = 2
-          elsif folder_type == 'subtitles'
-            priority = 1
+          priority = 2
+          json = SlideTfidf.call(arr: slideInfo, signal: s)
+          if conceptInfo.any?
+            json = SlideConceptMix.call(slide: json, concept: conceptInfo)
           end
           name = Folder[id].name
-          json = SlideTfidf.call(arr: folderInfo, signal: s)
           CreateKeywordForChap.call(
             course_id: course_id,
             folder_id: id,
