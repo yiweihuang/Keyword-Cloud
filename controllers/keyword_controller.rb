@@ -21,15 +21,12 @@ class KeywordCloudAPI < Sinatra::Base
           conceptInfo.push(content)
         end
       end
-      info = keyword.map do |id, s|
-        if s.any?
+      if keyword[keyword.keys[0]].empty?
+        info = keyword.map do |id, s|
           chapter_id = Folder[id].chapter_id
           folder_type = Folder[id].folder_type
-          priority = 2
-          json = SlideTfidf.call(arr: slideInfo, signal: s)
-          if conceptInfo.any?
-            json = SlideConceptMix.call(slide: json, concept: conceptInfo)
-          end
+          priority = 3
+          json = ConceptIdf.call(concept: conceptInfo)
           name = Folder[id].name
           CreateKeywordForChap.call(
             course_id: course_id,
@@ -39,6 +36,27 @@ class KeywordCloudAPI < Sinatra::Base
             folder_type: folder_type,
             priority: priority,
             keyword: json)
+        end
+      else
+        info = keyword.map do |id, s|
+          if s.any?
+            chapter_id = Folder[id].chapter_id
+            folder_type = Folder[id].folder_type
+            priority = 2
+            json = SlideTfidf.call(arr: slideInfo, signal: s)
+            if conceptInfo.any?
+              json = SlideConceptMix.call(slide: json, concept: conceptInfo)
+            end
+            name = Folder[id].name
+            CreateKeywordForChap.call(
+              course_id: course_id,
+              folder_id: id,
+              chapter_id: chapter_id,
+              chapter_name: name,
+              folder_type: folder_type,
+              priority: priority,
+              keyword: json)
+          end
         end
       end
       JSON.pretty_generate(data: coursename, content: info)
