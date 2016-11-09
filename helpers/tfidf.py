@@ -80,9 +80,16 @@ for item in delete_list:
 for item in word_tfidf:
     word_tfidf.update({item: float(word_tfidf.get(item))})
 
-# for item in list(word_tfidf):
-#     if float(word_tfidf.get(item)) < 4.0:
-#         word_tfidf.pop(item)
+
+rev_multidict = {}
+for key, value in word_tfidf.items():
+    rev_multidict.setdefault(value, set()).add(key)
+multi_list = [key for key, values in rev_multidict.items() if len(values) > 1]
+ave = round(sum(multi_list) / float(len(multi_list)))
+
+for item in list(word_tfidf):
+    if float(word_tfidf.get(item)) < ave:
+        word_tfidf.pop(item)
 
 for item in list(word_tfidf):
     if float(word_tfidf.get(item)) > 1000.0:
