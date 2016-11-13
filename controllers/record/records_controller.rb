@@ -5,7 +5,7 @@ class KeywordCloudAPI < Sinatra::Base
     content_type 'application/json'
     begin
       FindVideoRecord.call(course_id: params[:course_id])
-      JSON.pretty_generate(status: 'success')
+      JSON.pretty_generate(status: 'mongo success')
     rescue => e
       logger.info "FAILED to connect mongodb: #{e}"
       halt 404
@@ -19,7 +19,7 @@ class KeywordCloudAPI < Sinatra::Base
       course_arr.map do |id|
         FindChapterVideo.call(course_id: id)
       end
-      JSON.pretty_generate(data: 'success')
+      JSON.pretty_generate(data: 'videos success')
     rescue => e
       logger.info "FAILED to get chapter video: #{e}"
       halt 404
@@ -63,6 +63,16 @@ class KeywordCloudAPI < Sinatra::Base
             folder_type: 'subtitles',
             priority: 1,
             keyword: json)
+        else
+          json = CreateFinalKeyword.call(slide_keyword: 'empty', subtitle_keyword: contents)
+          CreateKeywordForChap.call(
+            course_id: course_id,
+            folder_id: folderInfo.id,
+            chapter_id: id,
+            chapter_name: folderInfo.name,
+            folder_type: 'subtitles',
+            priority: 1,
+            keyword: json)
         end
       end
       JSON.pretty_generate(data: keywordInfo)
@@ -86,7 +96,12 @@ class KeywordCloudAPI < Sinatra::Base
   get '/api/v1/shellscript' do
     content_type 'application/json'
     begin
-      course_id = Keyword.select(:course_id).map(&:course_id).uniq
+      folder_id = Subtitle.select(:folder_id).map(&:folder_id).uniq
+      course_id = folder_id.map do |id|
+        Folder.where(id: id).first.course_id
+      end
+      course_id = course_id.uniq
+      # course_id = Folder.select(:course_id).map(&:course_id).uniq
       shell_array = course_id.map { |i| i.to_s }.join(" ")
       JSON.pretty_generate(data: shell_array)
     rescue => e
