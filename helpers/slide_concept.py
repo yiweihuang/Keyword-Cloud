@@ -17,12 +17,14 @@ wordlist = wordlist.split(',')
 length =len(slide)
 value = math.ceil(sum(slide.values())/length)
 intersection = set(wordlist).intersection(set(slide.keys()))
-for word in intersection:
-    ratio = slide[word] + value
+for i, word in enumerate(intersection):
+    weight = length + 1 - i
+    ratio = slide[word] + (value * weight * 0.08)
     slide[word] = ratio
 
 difference = set(wordlist).difference(set(slide.keys()))
-for word in difference:
-    slide[word] = value
+for i, word in enumerate(difference):
+    weight = length + 1 - i
+    slide[word] = value * weight * 0.08
 
 print(slide)

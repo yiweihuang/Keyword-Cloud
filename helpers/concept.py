@@ -16,7 +16,8 @@ length = len(wordlist)
 value = math.ceil(100 / length)
 concept_dict = {}
 
-for word in wordlist:
-    concept_dict[word] = value
+for i, word in enumerate(wordlist):
+    weight = length + 1 - i
+    concept_dict[word] = value * weight * 0.4
 
 print(concept_dict)
