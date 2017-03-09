@@ -43,7 +43,7 @@ class KeywordCloudAPI < Sinatra::Base
             chapter_id = Folder[id].chapter_id
             folder_type = Folder[id].folder_type
             priority = 2
-            json = SlideTfidf.call(arr: slideInfo, signal: s)
+            json = SlideTfidf.call(arr: slideInfo, signal: s, type: 'keyword')
             if conceptInfo.any?
               json = SlideConceptMix.call(slide: json, concept: conceptInfo)
             end
