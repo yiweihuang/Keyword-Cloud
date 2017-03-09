@@ -1,7 +1,7 @@
 require 'base64'
 
 class SlideTfidf
-  def self.call(arr:, signal:)
+  def self.call(arr:, signal:, type:)
     gram_tfidf = Hash.new
     signal.map do |x|
       line = x.split("\n\n")
@@ -38,6 +38,10 @@ class SlideTfidf
         end
       end
     end
-    `python3 helpers/tfidf.py "#{word_tfidf}"`
+    if type == 'keyword'
+      `python3 helpers/tfidf.py "#{word_tfidf}"`
+    elsif type == 'kmap'
+      `python3 helpers/kmap_tfidf.py "#{word_tfidf}"`
+    end
   end
 end
