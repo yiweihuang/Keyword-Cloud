@@ -12,8 +12,8 @@ if len(sys.argv) < 2:
 else:
     slides = sys.argv[1]
 
-jieba.set_dictionary('lib/dict/dict.txt.big')
-jieba.load_userdict('lib/dict/dict.txt.big')
+# jieba.set_dictionary('lib/dict/dict.txt.big')
+# jieba.load_userdict('lib/dict/dict.txt.big')
 stop = open("lib/dict/stopwords.txt").read()
 lemmatizer = WordNetLemmatizer()
 max_ngram = 5
