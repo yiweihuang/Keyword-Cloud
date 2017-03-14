@@ -17,7 +17,8 @@ class Tfidf < Sequel::Model
               folder_type: folder_type,
               chapter_id: chapter_id,
               chapter_name: chapter_name,
-              tfidf: tfidf
+              tfidf: tfidf,
+              range: range
             }
           },
          options)

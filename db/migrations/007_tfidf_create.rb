@@ -12,6 +12,7 @@ Sequel.migration do
       String :folder_type
       Integer :priority
       String :tfidf
+      Integer :range
       DateTime :created_at
       DateTime :updated_at
     end
