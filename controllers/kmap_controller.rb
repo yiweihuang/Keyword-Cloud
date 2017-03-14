@@ -59,6 +59,10 @@ class KeywordCloudAPI < Sinatra::Base
             json = ConceptIdf.call(concept: conceptInfo)
           end
         end
+        if json
+          title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+          range = FindRange.call(tfidf: json, title_str: title_str)
+        end
         CreateTfidfForChap.call(
           course_id: course_id,
           folder_id: id,
@@ -66,7 +70,8 @@ class KeywordCloudAPI < Sinatra::Base
           chapter_name: name,
           folder_type: folder_type,
           priority: priority,
-          tfidf: json)
+          tfidf: json,
+          range: range)
       end
       JSON.pretty_generate(data: coursename, content: info)
     rescue => e
