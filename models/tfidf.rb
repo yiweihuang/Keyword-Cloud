@@ -1,7 +1,7 @@
 require 'json'
 require 'sequel'
 
-# Holds a Folder's information
+# Holds a TFIDF's information
 class Tfidf < Sequel::Model
   plugin :timestamps, update_on_create: true
 
@@ -18,7 +18,8 @@ class Tfidf < Sequel::Model
               chapter_id: chapter_id,
               chapter_name: chapter_name,
               tfidf: tfidf,
-              range: range
+              range: range,
+              chose_word: chose_word
             }
           },
          options)

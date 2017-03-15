@@ -13,6 +13,7 @@ Sequel.migration do
       Integer :priority
       String :tfidf
       Integer :range
+      Jsonb :chose_word, null: false, default: '{}'
       DateTime :created_at
       DateTime :updated_at
     end
