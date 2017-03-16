@@ -139,12 +139,14 @@ class KeywordCloudAPI < Sinatra::Base
       name = Course.where(id: course_id).first.course_name
       content = Tfidf.where(course_id: course_id, chapter_id: chapter_id, priority: 2).first
       kmap_json = CreateKmapTree.call(course_id: course_id, chapter_id: chapter_id, name: name, tfidf: content.chose_word)
+      url = PostKmap.call(chapter_id: chapter_id, kmap_json: kmap_json)
       JSON.pretty_generate(data: name,
                            course_id: content.course_id,
                            folder_id: content.folder_id,
                            chapter_id: content.chapter_id,
                            chapter_name: content.chapter_name,
-                           kmap_json: kmap_json)
+                           kmap_json: kmap_json,
+                           url: url['url'])
     rescue => e
       logger.info "FAILED to show keyword: #{e.inspect}"
       halt 404
