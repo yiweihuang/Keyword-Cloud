@@ -15,6 +15,8 @@ gem 'jose'
 gem 'mongo'
 gem 'http'
 gem "rack-timeout"
+gem "url"
+gem "http"
 
 group :development do
   gem 'rerun'

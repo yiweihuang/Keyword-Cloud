@@ -73,6 +73,7 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.7.2)
+    url (0.3.2)
 
 PLATFORMS
   ruby
@@ -95,6 +96,7 @@ DEPENDENCIES
   sinatra
   sqlite3
   tux
+  url
 
 RUBY VERSION
    ruby 2.3.1p112
