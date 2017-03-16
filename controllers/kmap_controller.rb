@@ -137,8 +137,9 @@ class KeywordCloudAPI < Sinatra::Base
       chapter_id = params[:chapter_id]
       halt 401 unless authorized_account?(env, uid)
       name = Course.where(id: course_id).first.course_name
+      ch_name = Folder.where(course_id: course_id, chapter_id: chapter_id).name
       content = Tfidf.where(course_id: course_id, chapter_id: chapter_id, priority: 2).first
-      kmap_json = CreateKmapTree.call(course_id: course_id, chapter_id: chapter_id, name: name, tfidf: content.chose_word)
+      kmap_json = CreateKmapTree.call(course_id: course_id, chapter_id: chapter_id, name: ch_name, tfidf: content.chose_word)
       url = PostKmap.call(chapter_id: chapter_id, kmap_json: kmap_json)
       JSON.pretty_generate(data: name,
                            course_id: content.course_id,
