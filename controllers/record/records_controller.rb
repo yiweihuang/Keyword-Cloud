@@ -110,6 +110,23 @@ class KeywordCloudAPI < Sinatra::Base
     end
   end
 
+  get '/api/v1/shellscript/kmap' do
+    content_type 'application/json'
+    begin
+      folder_id = SimpleFile.select(:folder_id).map(&:folder_id).uniq
+      course_id = folder_id.map do |id|
+        Folder.where(id: id).first.course_id
+      end
+      course_id = course_id.uniq
+      # course_id = Folder.select(:course_id).map(&:course_id).uniq
+      shell_array = course_id.map { |i| i.to_s }.join(" ")
+      JSON.pretty_generate(data: shell_array)
+    rescue => e
+      logger.info "FAILED to connect sqlite: #{e}"
+      halt 404
+    end
+  end
+
   get '/api/v1/courses/keywords/:course_id' do
     content_type 'application/json'
     begin
@@ -128,6 +145,22 @@ class KeywordCloudAPI < Sinatra::Base
       JSON.pretty_generate(status: keywordInfo)
     rescue => e
       logger.info "FAILED to get keyword: #{e}"
+      halt 404
+    end
+  end
+
+  get '/api/v1/slide/:course_id' do
+    content_type 'application/json'
+    begin
+      course_id = params[:course_id]
+      chap_folder = Folder.where(course_id: course_id, folder_type: 'slides').all
+      chap_folder.map do |f|
+        StorePdf.call(course_id: course_id, folder_id: f.id, chapter_id: f.chapter_id)
+        FindPdfParser.call(course_id: course_id, folder_id: f.id, chapter_id: f.chapter_id)
+      end
+      JSON.pretty_generate(status: 'slide success')
+    rescue => e
+      logger.info "FAILED to connect slide: #{e}"
       halt 404
     end
   end
