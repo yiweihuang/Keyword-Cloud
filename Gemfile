@@ -17,6 +17,7 @@ gem 'http'
 gem "rack-timeout"
 gem "url"
 gem "http"
+gem "prawn"
 
 group :development do
   gem 'rerun'
