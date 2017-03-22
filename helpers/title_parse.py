@@ -19,6 +19,8 @@ def paser_step_one(path, write_title):
                 if page != '1':
                     title_name = json_txt[page]['1']['Content']
                     title_name = title_name.strip()
+                    if '：' in title_name:
+                        title_name = title_name.split('：')[1]
                     if title_name not in title:
                         title.append(title_name)
         os.remove(write_title) if os.path.exists(write_title) else None

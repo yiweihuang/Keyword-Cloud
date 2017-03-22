@@ -140,7 +140,9 @@ def paser_step_one(path):
             if page != '1':
                 title_name = json_txt[page]['1']['Content']
                 title_name = title_name.strip()
-                if title_name not in title:
+                if '：' in title_name:
+                    title_name = title_name.split('：')[1]
+                if title_name not in title and title_name in kmap_point:
                     title.append(title_name)
     return title
 
@@ -154,7 +156,10 @@ def paser_step_two(path, layer_one):
             layer_dict = {}
             layer_arr = []
             for page in json_txt:
-                if one == json_txt[page]['1']['Content'].strip():
+                title_name = json_txt[page]['1']['Content'].strip()
+                if '：' in title_name:
+                    title_name = title_name.split('：')[1]
+                if one == title_name:
                     for row, info in json_txt[page].items():
                         if info['Layer'] not in layer_arr:
                             layer_arr.append(info['Layer'])
