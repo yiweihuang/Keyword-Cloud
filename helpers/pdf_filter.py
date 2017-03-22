@@ -17,7 +17,7 @@ import sys
 import math
 # Open a PDF file.
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 2:
     print('Usage: python3 [].py contents')
     sys.exit()
 else:
@@ -156,6 +156,7 @@ def main():
     directory = '../k-map/slide_layer/' + cid + '/'
     if not os.path.exists(directory):
         os.makedirs(directory)
+    os.remove(directory + chid + '.json') if os.path.exists(directory + chid + '.json') else None
     with codecs.open(directory + chid + '.json', 'w', encoding='utf-8') as f:
         json.dump(OutputDict, f, ensure_ascii=False, indent=4)
 

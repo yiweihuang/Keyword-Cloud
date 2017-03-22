@@ -157,6 +157,7 @@ class KeywordCloudAPI < Sinatra::Base
       chap_folder.map do |f|
         StorePdf.call(course_id: course_id, folder_id: f.id, chapter_id: f.chapter_id)
         FindPdfParser.call(course_id: course_id, folder_id: f.id, chapter_id: f.chapter_id)
+        TitleParser.call(course_id: course_id, chapter_id: f.chapter_id)
       end
       JSON.pretty_generate(status: 'slide success')
     rescue => e
