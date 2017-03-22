@@ -20,7 +20,6 @@ lower_title = [x.lower() for x in title_arr]
 for i in list(tfidf):
     if i.lower() in lower_title:
         del tfidf[i]
-tfidf_item = tfidf.items()
-
+tfidf_item = sorted(tfidf.items(), key=lambda x: x[1], reverse=True)
 for i in range(0, number, 1):
     print(list(tfidf_item)[i])
