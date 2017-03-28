@@ -5,6 +5,7 @@ import re
 import itertools
 import ast
 from collections import OrderedDict
+import numpy as np
 
 if len(sys.argv) < 4:
     print('Usage: python3 [].py cid chid name kmap_point')
@@ -15,51 +16,60 @@ else:
     name = sys.argv[3]
     kmap_point = sys.argv[4]
 
-kmap_point = list(ast.literal_eval(kmap_point))
+tfidf_keyword = list(ast.literal_eval(kmap_point))
 
 # check if a sentence contains a certain word
-def fit_word(doc, tfidf_keyword):
-    fit_word_arr = []
-    word = re.sub(r'[0-9]+\.[0-9]+', ' ', doc)
-    word = re.sub(r'[•/:/()。:]+', ' ', doc)
+def fit_sent(sentence, tfidf_keyword):
+    keyword_arr = []
+    word = re.sub(r'[：•/:/()。:，]+', '', sentence)
+    word = re.sub(r'[().,…:@=?+]+', '', word)
+    word = re.sub(r'(\d+)', '', word)
     word = word.strip()
     for keyword in tfidf_keyword:
         if len(keyword) > 0:
             if word.lower().find(keyword.lower()) >= 0:
-                fit_word_arr.append(keyword)
-    return fit_word_arr
+                keyword_arr.append(keyword)
+    return keyword_arr
 
-#  find words of n-layer (n is 2,3,4)
-def fix_layer(title, tfidf_keyword, json_txt, layer_num):
-    temp_ = {}
+#  find words of n-layer (n is 2,3,4,5)
+def rows_keyword_valid(title, tfidf_keyword, json_txt, layer_num):
+    row_keyword = {} # Rows to keyword
     for page in json_txt:
-        if title == json_txt[page]['1']['Content'].strip():
+        check_title = json_txt[page]['1']['Content'].strip()
+        if '：' in check_title:
+            check_title = check_title.split('：')[1]
+        if title == check_title: # check title
             for row, info in json_txt[page].items():
                 if info['Layer'] == layer_num:
                     raw_sent = info['Content']
-                    fit_word_arr = fit_word(raw_sent, tfidf_keyword)
-                    if fit_word_arr:
-                        fit_word_arr = list(set(fit_word_arr))
-                        if int(row) in temp_:
-                            temp_[int(row)] = temp_[int(row)] + fit_word_arr
-                            temp_[int(row)] = list(set(temp_[int(row)]))
+                    fit_sent_arr = fit_sent(raw_sent, tfidf_keyword)
+                    if fit_sent_arr:
+                        fit_sent_arr = list(set(fit_sent_arr))
+                        if int(row) in row_keyword:
+                            row_keyword[int(row)] = row_keyword[int(row)] + fit_sent_arr
+                            row_keyword[int(row)] = list(set(row_keyword[int(row)]))
                         else:
-                            temp_[int(row)] = fit_word_arr
-    return temp_
+                            row_keyword[int(row)] = fit_sent_arr
+    return row_keyword
 
 #  find words of more than n-layer (n is 5)
-def until_layer(title, tfidf_keyword, json_txt, layer_num):
-    temp_ = {}
+def rows_keyword_invalid(title, tfidf_keyword, json_txt, layer_num):
+    row_keyword = {}
     for page in json_txt:
-        if title == json_txt[page]['1']['Content'].strip():
+        check_title = json_txt[page]['1']['Content'].strip()
+        if '：' in check_title:
+            check_title = check_title.split('：')[1]
+        if title == check_title: # check title
             for row, info in json_txt[page].items():
                 if info['Layer'] >= layer_num:
                     raw_sent = info['Content']
-                    fit_word_arr = fit_word(raw_sent, tfidf_keyword)
-                    if fit_word_arr:
-                        fit_word_arr = list(set(fit_word_arr))
-                        temp_[int(row)] = fit_word_arr
-    return temp_
+                    fit_sent_arr = fit_sent(raw_sent, tfidf_keyword)
+                    if int(row) in row_keyword:
+                        row_keyword[int(row)] = row_keyword[int(row)] + fit_sent_arr
+                        row_keyword[int(row)] = list(set(row_keyword[int(row)]))
+                    else:
+                        row_keyword[int(row)] = fit_sent_arr
+    return row_keyword
 
 # get the next and previous key:value of a particular key in a dictionary
 def iterate(iterable):
@@ -70,35 +80,30 @@ def iterate(iterable):
         item = next_item
     yield item, None
 
-def build_layer_zero(title, tfidf_keyword):
-    all_ = ()
-    fit_word_arr = fit_word(title, tfidf_keyword)
-    for word in fit_word_arr:
-        tup = ('', word)
-        if tup not in all_:
-            all_ = all_ + (tup,)
-    return all_
-
 # title - layer_1
-def build_layer_first(title, layer_first):
+def build_level_one(title, level_one, tfidf_keyword):
     all_ = ()
-    layer_first = OrderedDict(sorted(layer_first.items()))
-    for first_key in layer_first:
-        for item in layer_first[first_key]:
-            if title.lower() != item.lower():
-                tup = ((title, item),)
-                if tup[0] not in all_:
-                    all_ = all_ + tup
+    level_one = OrderedDict(sorted(level_one.items()))
+    title_keyword = fit_sent(title, tfidf_keyword)
+    level_one_keyword = []
+    if level_one.values():
+        for word in level_one.values():
+            level_one_keyword += word
+    Matrix = [[(y,x) for x in list(set(level_one_keyword)) if y != x] for y in title_keyword]
+    if Matrix:
+        for first in Matrix:
+            for i in first:
+                all_ = all_ + (i,)
     return all_
 
 # layer_n - layer_n+1 (n is 1,2,3,4)
-def build_layer(pre, next_):
+def build_level_n(pre, next_):
     all_ = ()
     if next_ != None:
         pre = OrderedDict(sorted(pre[1].items()))
         next_ = OrderedDict(sorted(next_[1].items()))
-        for next_key in next_:
-            for next_item in next_[next_key]:
+        for next_key in next_: # layer
+            for next_item in next_[next_key]: # order
                 tup = ()
                 for pre_key in pre:
                     for pre_item in pre[pre_key]:
@@ -111,96 +116,87 @@ def build_layer(pre, next_):
     return all_
 
 # Sort by first_layer and second_layer
-def compare_layer(first_, second_, test_arr, final_dona):
+def compare_level(first_, second_, compare_arr, final_dona, all_):
     for first_item in first_:
-        test_arr.append(first_item[1])
-        test_arr = list(set(test_arr))
-        if first_item not in final_dona:
+        compare_arr.append(first_item[1])
+        compare_arr = list(set(compare_arr))
+        if first_item not in final_dona and first_item not in all_:
             final_dona = final_dona + (first_item,)
     for second_item in second_:
         if first_ and second_:
-            if second_item[0] in test_arr and second_item[1] not in test_arr:
-                test_arr.append(second_item[0])
-                test_arr.append(second_item[1])
-                if first_item[1] == second_item[0] and second_item not in final_dona:
+            if second_item[0] in compare_arr and second_item[1] not in compare_arr:
+                compare_arr.append(second_item[0])
+                compare_arr.append(second_item[1])
+                if first_item[1] == second_item[0] and second_item not in final_dona and second_item not in all_:
                     final_dona = final_dona + (second_item,)
         if second_ and not first_:
-            if second_item[1] not in test_arr:
-                test_arr.append(second_item[0])
-                test_arr.append(second_item[1])
-                if second_item not in final_dona:
+            if second_item[1] not in compare_arr:
+                compare_arr.append(second_item[0])
+                compare_arr.append(second_item[1])
+                if second_item not in final_dona and second_item not in all_:
                     final_dona = final_dona + (second_item,)
     return final_dona
 
-def paser_step_one(path):
-    title = []
-    with open(path, 'r') as fr:
-        json_txt = json.load(fr)
-        for page in json_txt:
-            if page != '1':
-                title_name = json_txt[page]['1']['Content']
-                title_name = title_name.strip()
-                if '：' in title_name:
-                    title_name = title_name.split('：')[1]
-                if title_name not in title and title_name in kmap_point:
-                    title.append(title_name)
-    return title
+def paser_titles(title_path):
+    titles = [line.rstrip('\n') for line in open(title_path)]
+    return titles
 
-def paser_step_two(path, layer_one):
-    tfidf_keyword = kmap_point
-    with open(path, 'r') as fr:
+def paser_content(content_path, titles):
+    INVALID_VALUE = 6
+    with open(content_path, 'r') as fr:
         json_txt = json.load(fr)
         done_ = ()
-        for one in layer_one:
-            test_arr = []
-            layer_dict = {}
-            layer_arr = []
+        for title in titles:
+            compare_arr = []
+            layer_dict = {} # key is layer number, value is keywords
+            layer_arr = [] # push the layer numbers of the same title
             for page in json_txt:
-                title_name = json_txt[page]['1']['Content'].strip()
-                if '：' in title_name:
-                    title_name = title_name.split('：')[1]
-                if one == title_name:
+                check_title = json_txt[page]['1']['Content'].strip()
+                if '：' in check_title:
+                    check_title = check_title.split('：')[1]
+                if title == check_title: # check title
                     for row, info in json_txt[page].items():
                         if info['Layer'] not in layer_arr:
                             layer_arr.append(info['Layer'])
             layer_arr = sorted(layer_arr)
-            layer_arr.pop(0)
+            layer_arr.pop(0) # pull the layer number of title
             if layer_arr:
-                layer_arr.pop(-1)
-            for layer_i in layer_arr:
-                if layer_i < 6:  # layer
-                    temp_ = fix_layer(one, tfidf_keyword, json_txt, layer_i)  # order - keyword
-                    layer_dict[layer_i] = temp_
-            until_temp = until_layer(one, tfidf_keyword, json_txt, 5)
-            if until_temp:
-                layer_dict[6] = until_temp
-            zero_ = build_layer_zero(one, tfidf_keyword)
+                layer_arr.pop(-1) # pull the layer number of page number
+            if layer_arr:
+                for layer in itertools.takewhile(lambda val: val != INVALID_VALUE, layer_arr): # suppose that the maximum of the layer number is 5
+                    valid = rows_keyword_valid(title, tfidf_keyword, json_txt, layer)  # rows - keyword
+                    layer_dict[layer] = valid # layers - rows - keyword
+            if INVALID_VALUE in layer_arr:
+                invalid = rows_keyword_invalid(title, tfidf_keyword, json_txt, INVALID_VALUE) # rows - keyword
+                if invalid:
+                    layer_dict[INVALID_VALUE] = invalid # layers - rows - keyword
+            # zero_ = build_layer_zero(title, tfidf_keyword)
             if layer_dict:
-                first_ = build_layer_first(one, layer_dict[2])
+                first_ = build_level_one(title, layer_dict[2], tfidf_keyword)
                 second_ = ()
                 for item, next_item in iterate(layer_dict.items()):
-                    tup = build_layer(item, next_item)
+                    tup = build_level_n(item, next_item)
                     second_ = second_ + tup
                 first_done = ()
                 firandsec_done = ()
                 second_done = ()
                 if first_ and not second_:
-                    first_done = compare_layer(first_, second_, test_arr, first_done)
+                    first_done = compare_level(first_, second_, compare_arr, first_done, done_)
                     done_ = done_ + first_done
                 if first_ and second_:
-                    firandsec_done = compare_layer(first_, second_, test_arr, firandsec_done)
+                    firandsec_done = compare_level(first_, second_, compare_arr, firandsec_done, done_)
                     done_ = done_ + firandsec_done
                 if second_ and not first_:
-                    second_done = compare_layer(first_, second_, test_arr, second_done)
+                    second_done = compare_level(first_, second_, compare_arr, second_done, done_)
                 update_second = ()
-                for only_second in second_done:
-                    if only_second not in done_:
+                for second_item in second_done:
+                    if second_item not in done_:
                         for done_item in done_:
-                            if only_second[0] == done_item[1] and only_second[1] != done_item[0]:
-                                if only_second not in update_second:
-                                    update_second = update_second + (only_second,)
+                            if second_item[0] == done_item[1] and second_item[1] != done_item[0]:
+                                if second_item not in update_second:
+                                    update_second = update_second + (second_item,)
                 done_ = done_ + update_second
-            done_ = zero_ + done_
+        #     done_ = zero_ + done_
         return done_
 
 def tup_dict_to_tree(name, links):
@@ -223,8 +219,9 @@ def tup_dict_to_tree(name, links):
             root['children'].remove(j)
     return root
 
-data = '../k-map/slide_layer/' + cid + '/' + chid + '.json'
-layer_one = paser_step_one(data)
-tup_dict = paser_step_two(data, layer_one)
+title_path = '../k-map/title/' + cid + '/' + chid + '.txt'
+content_path = '../k-map/slide_layer/' + cid + '/' + chid + '.json'
+titles = paser_titles(title_path)
+tup_dict = paser_content(content_path, titles)
 final_json = tup_dict_to_tree(name, tup_dict)
 print(final_json)
