@@ -159,7 +159,8 @@ def paser_content(content_path, titles):
                         if info['Layer'] not in layer_arr:
                             layer_arr.append(info['Layer'])
             layer_arr = sorted(layer_arr)
-            layer_arr.pop(0) # pull the layer number of title
+            if layer_arr:
+                layer_arr.pop(0) # pull the layer number of title
             if layer_arr:
                 layer_arr.pop(-1) # pull the layer number of page number
             if layer_arr:
