@@ -25,11 +25,11 @@ for item in type_convert:
                            (float(type_convert.get(item))*(len(item.split("+"))-1)*0.5)
                            })
 # 文字串接
-pattern_ch = u'[\u4e00-\u9fa5]+'
-pattern_en = u'[A-Za-z]+'
-pattern_mark = u'[/]+'
-pattern_num = u'[0-9]+\.[0-9]+'
-key_list = list(word_tfidf)
+pattern_ch = r'[\u4e00-\u9fa5]+'
+pattern_en = r'[A-Za-z]+'
+pattern_mark = r'[/]+'
+pattern_num = r'[0-9]+\.[0-9]+'
+key_list = list(word_tfidf.keys())
 for i in range(len(word_tfidf)):
     key_line = key_list[i].split("+")
     new_key = ""

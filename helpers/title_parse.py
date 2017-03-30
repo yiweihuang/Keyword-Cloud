@@ -23,6 +23,7 @@ def paser_step_one(path, write_title):
                         title_name = title_name.split('：')[1]
                     if title_name not in title:
                         title.append(title_name)
+        title = list(filter(None, title))
         os.remove(write_title) if os.path.exists(write_title) else None
         fw = open(write_title, 'w')
         for item in title:

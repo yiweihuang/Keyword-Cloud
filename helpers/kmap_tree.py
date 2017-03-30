@@ -80,6 +80,15 @@ def iterate(iterable):
         item = next_item
     yield item, None
 
+def build_layer_zero(title, tfidf_keyword):
+    all_ = ()
+    title_keyword = fit_sent(title, tfidf_keyword)
+    for word in title_keyword:
+        tup = ('', word)
+        if tup not in all_:
+            all_ = all_ + (tup,)
+    return all_
+
 # title - layer_1
 def build_level_one(title, level_one, tfidf_keyword):
     all_ = ()
@@ -141,7 +150,7 @@ def paser_titles(title_path):
     titles = [line.rstrip('\n') for line in open(title_path)]
     return titles
 
-def paser_content(content_path, titles):
+def paser_content(content_path, titles, tfidf_keyword):
     INVALID_VALUE = 6
     with open(content_path, 'r') as fr:
         json_txt = json.load(fr)
@@ -159,8 +168,8 @@ def paser_content(content_path, titles):
                         if info['Layer'] not in layer_arr:
                             layer_arr.append(info['Layer'])
             layer_arr = sorted(layer_arr)
-            if layer_arr:
-                layer_arr.pop(0) # pull the layer number of title
+            # if layer_arr:
+            layer_arr.pop(0) # pull the layer number of title
             if layer_arr:
                 layer_arr.pop(-1) # pull the layer number of page number
             if layer_arr:
@@ -171,7 +180,7 @@ def paser_content(content_path, titles):
                 invalid = rows_keyword_invalid(title, tfidf_keyword, json_txt, INVALID_VALUE) # rows - keyword
                 if invalid:
                     layer_dict[INVALID_VALUE] = invalid # layers - rows - keyword
-            # zero_ = build_layer_zero(title, tfidf_keyword)
+            zero_ = build_layer_zero(title, tfidf_keyword)
             if layer_dict:
                 first_ = build_level_one(title, layer_dict[2], tfidf_keyword)
                 second_ = ()
@@ -197,7 +206,7 @@ def paser_content(content_path, titles):
                                 if second_item not in update_second:
                                     update_second = update_second + (second_item,)
                 done_ = done_ + update_second
-        #     done_ = zero_ + done_
+            done_ = zero_ + done_
         return done_
 
 def tup_dict_to_tree(name, links):
@@ -223,6 +232,6 @@ def tup_dict_to_tree(name, links):
 title_path = '../k-map/title/' + cid + '/' + chid + '.txt'
 content_path = '../k-map/slide_layer/' + cid + '/' + chid + '.json'
 titles = paser_titles(title_path)
-tup_dict = paser_content(content_path, titles)
+tup_dict = paser_content(content_path, titles, tfidf_keyword)
 final_json = tup_dict_to_tree(name, tup_dict)
 print(final_json)

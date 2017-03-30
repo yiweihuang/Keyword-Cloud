@@ -16,7 +16,7 @@ else:
 # jieba.load_userdict('lib/dict/dict.txt.big')
 stop = open("lib/dict/stopwords.txt").read()
 lemmatizer = WordNetLemmatizer()
-max_ngram = 4
+max_ngram = 5
 ngram_counts = {}
 pattern = r'[A-Za-z/]+|[0-9]+\.[0-9]+|[\u4e00-\u9fa5]'
 seg_list = jieba.cut(slides, cut_all=False)
