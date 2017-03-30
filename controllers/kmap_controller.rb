@@ -30,49 +30,106 @@ class KeywordCloudAPI < Sinatra::Base
       course_id = params[:course_id]
       halt 401 unless authorized_account?(env, uid)
       coursename = Course.where(id: course_id).first.course_name
+      # Slide
       keyword = Hash.new
       slide_folder = Folder.where(course_id: course_id, folder_type: 'slides').all
       slideInfo = slide_folder.map do |f|
-        keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
-        keyword[f.id]
+        if SimpleFile.where(folder_id: f.id).first
+          keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
+          keyword[f.id]
+        end
       end
+      new_slideInfo = []
+      slideInfo.map do |arr|
+        if !arr.nil?
+          new_slideInfo.push(arr)
+        end
+      end
+      # concept
       concept_folder = Folder.where(course_id: course_id, folder_type: 'concepts').all
-      conceptInfo = []
+      conceptInfo = Hash.new
       concept_folder.map do |f|
-        content = ConceptSegment.call(folder_id: f.id)
-        if content.any?
-          conceptInfo.push(content)
+        if !ConceptSegment.call(folder_id: f.id).empty?
+          content = ConceptSegment.call(folder_id: f.id)
+          if content.any?
+            conceptInfo_arr = []
+            conceptInfo_arr.push(content)
+          end
+          conceptInfo.merge!({f.chapter_id => conceptInfo_arr})
         end
       end
-      info = keyword.map do |id, s|
-        chapter_id = Folder[id].chapter_id
-        folder_type = Folder[id].folder_type
-        name = Folder[id].name
-        if s.any?
-          priority = 2
-          json = SlideTfidf.call(arr: slideInfo, signal: s, type: 'kmap')
-          if conceptInfo.any?
-            json = SlideConceptMix.call(slide: json, concept: conceptInfo)
+
+      if !keyword.empty? and !conceptInfo.empty?
+        info = keyword.map do |id, s|
+          chapter_id = Folder[id].chapter_id
+          folder_type = Folder[id].folder_type
+          name = Folder[id].name
+          if s.any?
+            priority = 2
+            json = SlideTfidf.call(arr: new_slideInfo, signal: s, type: 'kmap')
+            if !conceptInfo[chapter_id].nil?
+              json = SlideConceptMix.call(slide: json, concept: conceptInfo[chapter_id])
+            end
           end
-        else
-          if conceptInfo.any?
-            priority = 3
-            json = ConceptIdf.call(concept: conceptInfo)
+          if json
+            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+            range = FindRange.call(tfidf: json, title_str: title_str)
           end
+          CreateTfidfForChap.call(
+            course_id: course_id,
+            folder_id: id,
+            chapter_id: chapter_id,
+            chapter_name: name,
+            folder_type: folder_type,
+            priority: priority,
+            tfidf: json,
+            range: range)
         end
-        if json
-          title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
-          range = FindRange.call(tfidf: json, title_str: title_str)
+      elsif !conceptInfo.empty? and keyword.empty?
+        info = conceptInfo.map do |id, s|
+          folder_id = Folder.where(chapter_id: id, folder_type:'concepts').first.id
+          name = Folder[id].name
+          if s.any?
+            priority = 2
+            json = ConceptIdf.call(concept: conceptInfo[id])
+          end
+          if json
+            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+            range = FindRange.call(tfidf: json, title_str: title_str)
+          end
+          CreateTfidfForChap.call(
+            course_id: course_id,
+            folder_id: folder_id,
+            chapter_id: id,
+            chapter_name: name,
+            folder_type: 'slides',
+            priority: priority,
+            tfidf: json,
+            range: range)
         end
-        CreateTfidfForChap.call(
-          course_id: course_id,
-          folder_id: id,
-          chapter_id: chapter_id,
-          chapter_name: name,
-          folder_type: folder_type,
-          priority: priority,
-          tfidf: json,
-          range: range)
+      elsif !keyword.empty? and conceptInfo.empty?
+        info = keyword.map do |id, s|
+          chapter_id = Folder[id].chapter_id
+          folder_type = Folder[id].folder_type
+          name = Folder[id].name
+          if s.any?
+            priority = 2
+            json = SlideTfidf.call(arr: new_slideInfo, signal: s, type: 'kmap')
+          end
+          if json
+            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+            range = FindRange.call(tfidf: json, title_str: title_str)
+          end
+          CreateTfidfForChap.call(
+            course_id: course_id,
+            folder_id: id,
+            chapter_id: chapter_id,
+            chapter_name: name,
+            folder_type: folder_type,
+            priority: priority,
+            tfidf: json,
+            range: range)
+        end
       end
       JSON.pretty_generate(data: coursename, content: info)
     rescue => e
