@@ -3,8 +3,13 @@ require 'base64'
 class SlideConceptMix
   def self.call(slide:, concept:)
     arr = concept[0].map do |wordlist|
-      word = wordlist.split("\n")
-      word
+      if wordlist.include? "\r\n"
+        word = wordlist.split("\r\n")
+        word
+      elsif wordlist.include? "\n"
+        word = wordlist.split("\n")
+        word
+      end
     end
     first, *rest = *arr
     concept_arr = first.zip(*rest).flatten.compact
