@@ -7,14 +7,20 @@ class KeywordCloudAPI < Sinatra::Base
       course_id = params[:course_id]
       halt 401 unless authorized_account?(env, uid)
       kmap_set = Tfidf.where(course_id: course_id, folder_type: 'slides').all
-      kmap_info = kmap_set.map do |k|
-        {
-          'course_id' => k.course_id,
-          'chapter_id' => k.chapter_id,
-          'chapter_name' => k.chapter_name,
-          'kmap' => k.tfidf,
-          'range' => k.range
-        }
+      order_kmap = Hash.new
+      kmap_set.map do |k|
+        order_kmap[k.folder_id]=
+          {
+            'course_id' => k.course_id,
+            'chapter_id' => k.chapter_id,
+            'chapter_name' => k.chapter_name,
+            'kmap' => k.tfidf,
+            'range' => k.range
+          }
+      end
+      order_kmap = Hash[ order_kmap.sort_by { |key, val| key.to_s } ]
+      kmap_info = order_kmap.map do |key, content|
+        content
       end
       JSON.pretty_generate(content: kmap_info)
     rescue => e
@@ -31,21 +37,9 @@ class KeywordCloudAPI < Sinatra::Base
       halt 401 unless authorized_account?(env, uid)
       coursename = Course.where(id: course_id).first.course_name
       # Slide
-      keyword = Hash.new
-      slide_folder = Folder.where(course_id: course_id, folder_type: 'slides').all
-      slideInfo = slide_folder.map do |f|
-        if SimpleFile.where(folder_id: f.id).first
-          keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
-          keyword[f.id]
-        end
-      end
-      new_slideInfo = []
-      slideInfo.map do |arr|
-        if !arr.nil?
-          new_slideInfo.push(arr)
-        end
-      end
-      # concept
+      SlideTfidf.call(course_id: course_id, type: 'kmap')
+      keyword = ReadTfidf.call(course_id: course_id)
+
       concept_folder = Folder.where(course_id: course_id, folder_type: 'concepts').all
       conceptInfo = Hash.new
       concept_folder.map do |f|
@@ -61,24 +55,24 @@ class KeywordCloudAPI < Sinatra::Base
 
       if !keyword.empty? and !conceptInfo.empty?
         info = keyword.map do |id, s|
-          chapter_id = Folder[id].chapter_id
-          folder_type = Folder[id].folder_type
-          name = Folder[id].name
+          folder_id = Folder.where(chapter_id: id, folder_type:'slides').first.id
+          folder_type = Folder[folder_id].folder_type
+          name = Folder[folder_id].name
           if s.any?
             priority = 2
-            json = SlideTfidf.call(arr: new_slideInfo, signal: s, type: 'kmap')
-            if !conceptInfo[chapter_id].nil?
-              json = SlideConceptMix.call(slide: json, concept: conceptInfo[chapter_id])
+            json = ConvertJson.call(cid: course_id, chid: id)
+            if !conceptInfo[id].nil?
+              json = SlideConceptMix.call(slide: json, concept: conceptInfo[id])
             end
           end
           if json
-            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: id)
             range = FindRange.call(tfidf: json, title_str: title_str)
           end
           CreateTfidfForChap.call(
             course_id: course_id,
             folder_id: id,
-            chapter_id: chapter_id,
+            chapter_id: id,
             chapter_name: name,
             folder_type: folder_type,
             priority: priority,
@@ -109,21 +103,21 @@ class KeywordCloudAPI < Sinatra::Base
         end
       elsif !keyword.empty? and conceptInfo.empty?
         info = keyword.map do |id, s|
-          chapter_id = Folder[id].chapter_id
-          folder_type = Folder[id].folder_type
-          name = Folder[id].name
+          folder_id = Folder.where(chapter_id: id, folder_type:'slides').first.id
+          folder_type = Folder[folder_id].folder_type
+          name = Folder[folder_id].name
           if s.any?
             priority = 2
-            json = SlideTfidf.call(arr: new_slideInfo, signal: s, type: 'kmap')
+            json = ConvertJson.call(cid: course_id, chid: id)
           end
           if json
-            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: chapter_id)
+            title_str = FindSlideTitle.call(course_id: course_id, chapter_id: id)
             range = FindRange.call(tfidf: json, title_str: title_str)
           end
           CreateTfidfForChap.call(
             course_id: course_id,
-            folder_id: id,
-            chapter_id: chapter_id,
+            folder_id: folder_id,
+            chapter_id: id,
             chapter_name: name,
             folder_type: folder_type,
             priority: priority,
