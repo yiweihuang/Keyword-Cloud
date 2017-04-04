@@ -9,6 +9,8 @@ class SlideConceptMix
       elsif wordlist.include? "\n"
         word = wordlist.split("\n")
         word
+      else
+        [wordlist]
       end
     end
     first, *rest = *arr
