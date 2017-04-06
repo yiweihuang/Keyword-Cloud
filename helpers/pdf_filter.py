@@ -70,7 +70,7 @@ device = PDFPageAggregator(rsrcmgr, laparams=laparams)
 interpreter = PDFPageInterpreter(rsrcmgr, device)
 OutputDict = {}
 def detect_specail_word(word):
-    special_word = ['/','-',' ','+',':','(',')']
+    special_word = ['/','-',' ','+',':','(',')','.']
     #print word
     if word in special_word:
         return True
@@ -100,7 +100,11 @@ def parse_obj(lt_objs,pageNo):
                     if (not isinstance(c, LTChar)) and (not isinstance(c, LTAnno)):
                         continue
                     tmp = c.get_text()
-                    if re.match(pattern, tmp) is not None or detect_specail_word(tmp)==True:
+                    if re.match(pattern, tmp) is not None or detect_specail_word(tmp)==True or tmp == '*':
+                        if tmp == u' \xa0':
+                            tmp = ' '
+                        if tmp == '*':
+                            tmp = " "
                         if isinstance(c, LTAnno):
                             tempString+=c.get_text()
                         else:
