@@ -7,6 +7,11 @@ class CreateKmapTree
     # else
     #   `python3 helpers/kmap_tree.py "#{course_id}" "#{chapter_id}" "#{name}" "#{kmap_point}"`
     # end
-    `python3 helpers/kmap_tree_for_outline.py "#{course_id}" "#{chapter_id}" "#{name}" "#{kmap_point}"`
+    json = `python3 helpers/kmap_tree_for_outline.py "#{course_id}" "#{chapter_id}" "#{name}" "#{kmap_point}"`
+    if json
+      json
+    else
+      `python3 helpers/kmap_tree.py "#{course_id}" "#{chapter_id}" "#{name}" "#{kmap_point}"`
+    end
   end
 end
