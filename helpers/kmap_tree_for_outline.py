@@ -211,7 +211,7 @@ def paser_content(content_path, titles, tfidf_keyword):
                     first_ =()
                     second_ = ()
                     if layer_row and layer_row[1]:
-                        if outline['outline'][COUNT] not in layer_row[1][1]:
+                        if outline['outline'][COUNT] not in list(layer_row[1].values())[0]:
                             first_ = build_level_one(outline['outline'][COUNT], layer_row[1])
                             second_ = ()
                             for item, next_item in iterate(layer_row.items()):
