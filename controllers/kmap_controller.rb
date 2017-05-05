@@ -191,7 +191,9 @@ class KeywordCloudAPI < Sinatra::Base
       ch_name = Folder.where(course_id: course_id, chapter_id: chapter_id).first.name
       content = Tfidf.where(course_id: course_id, chapter_id: chapter_id, priority: 2).first
       kmap_json = CreateKmapTree.call(course_id: course_id, chapter_id: chapter_id, name: ch_name, tfidf: content.chose_word)
-      url = PostKmap.call(course_id: course_id, chapter_id: chapter_id, kmap_json: kmap_json)
+      kmap_video_info = KmapToVideo.call(course_id: course_id, chapter_id: chapter_id,tfidf: content.chose_word)
+      kmap_discussion_info = KmapToDiscussion.call(course_id: course_id, chapter_id: chapter_id,tfidf: content.chose_word)
+      url = PostKmap.call(course_id: course_id, chapter_id: chapter_id, kmap_json: kmap_json, kmap_video_info: kmap_video_info, kmap_discussion_info: kmap_discussion_info)
       JSON.pretty_generate(data: name,
                            course_id: content.course_id,
                            folder_id: content.folder_id,
