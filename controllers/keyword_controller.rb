@@ -3,60 +3,142 @@ class KeywordCloudAPI < Sinatra::Base
   get '/api/v1/accounts/:uid/:course_id/:chapter_id/makekeyword' do
     content_type 'application/json'
     begin
+    #   uid = params[:uid]
+    #   course_id = params[:course_id]
+    #   halt 401 unless authorized_account?(env, uid)
+    #   coursename = Course.where(id: course_id).first.course_name
+    #   keyword = Hash.new
+    #   slide_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'slides').all
+    #   slideInfo = slide_folder.map do |f|
+    #     keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
+    #     keyword[f.id]
+    #   end
+    #   concept_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'concepts').all
+    #   conceptInfo = []
+    #   concept_folder.map do |f|
+    #     content = ConceptSegment.call(folder_id: f.id)
+    #     if content.any?
+    #       conceptInfo.push(content)
+    #     end
+    #   end
+    #   if keyword[keyword.keys[0]].empty?
+    #     info = keyword.map do |id, s|
+    #       chapter_id = Folder[id].chapter_id
+    #       folder_type = Folder[id].folder_type
+    #       priority = 3
+    #       json = ConceptIdf.call(concept: conceptInfo)
+    #       name = Folder[id].name
+    #       CreateKeywordForChap.call(
+    #         course_id: course_id,
+    #         folder_id: id,
+    #         chapter_id: chapter_id,
+    #         chapter_name: name,
+    #         folder_type: folder_type,
+    #         priority: priority,
+    #         keyword: json)
+    #     end
+    #   else
+    #     info = keyword.map do |id, s|
+    #       if s.any?
+    #         chapter_id = Folder[id].chapter_id
+    #         folder_type = Folder[id].folder_type
+    #         priority = 2
+    #         json = SlideTfidf.call(arr: slideInfo, signal: s, type: 'keyword')
+    #         if conceptInfo.any?
+    #           json = SlideConceptMix.call(slide: json, concept: conceptInfo)
+    #         end
+    #         name = Folder[id].name
+    #         CreateKeywordForChap.call(
+    #           course_id: course_id,
+    #           folder_id: id,
+    #           chapter_id: chapter_id,
+    #           chapter_name: name,
+    #           folder_type: folder_type,
+    #           priority: priority,
+    #           keyword: json)
+    #       end
+    #     end
+    #   end
+    #   JSON.pretty_generate(data: coursename, content: info)
+    # rescue => e
+    #   logger.info "FAILED to make keyword: #{e.inspect}"
+    #   halt 404
+    # end
       uid = params[:uid]
       course_id = params[:course_id]
       halt 401 unless authorized_account?(env, uid)
       coursename = Course.where(id: course_id).first.course_name
-      keyword = Hash.new
-      slide_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'slides').all
-      slideInfo = slide_folder.map do |f|
-        keyword.merge!({f.id => SlideSegment.call(folder_id: f.id)})
-        keyword[f.id]
-      end
-      concept_folder = Folder.where(course_id: params[:course_id], chapter_id: params[:chapter_id], folder_type: 'concepts').all
-      conceptInfo = []
+      # Slide
+      SlideTfidf.call(course_id: course_id, type: 'kmap')
+      keyword = ReadTfidf.call(course_id: course_id)
+      concept_folder = Folder.where(course_id: course_id, folder_type: 'concepts').all
+      conceptInfo = Hash.new
       concept_folder.map do |f|
-        content = ConceptSegment.call(folder_id: f.id)
-        if content.any?
-          conceptInfo.push(content)
+        if !ConceptSegment.call(folder_id: f.id).empty?
+          content = ConceptSegment.call(folder_id: f.id)
+          if content.any?
+            conceptInfo_arr = []
+            conceptInfo_arr.push(content)
+          end
+          conceptInfo.merge!({f.chapter_id => conceptInfo_arr})
         end
       end
-      if keyword[keyword.keys[0]].empty?
+
+      if !keyword.empty? and !conceptInfo.empty?
         info = keyword.map do |id, s|
-          chapter_id = Folder[id].chapter_id
-          folder_type = Folder[id].folder_type
-          priority = 3
-          json = ConceptIdf.call(concept: conceptInfo)
-          name = Folder[id].name
+          folder_id = Folder.where(chapter_id: id, folder_type:'slides').first.id
+          folder_type = Folder[folder_id].folder_type
+          name = Folder[folder_id].name
+          if s.any?
+            priority = 2
+            json = ConvertJson.call(cid: course_id, chid: id)
+            if !conceptInfo[id].nil?
+              json = SlideConceptMix.call(slide: json, concept: conceptInfo[id])
+            end
+          end
           CreateKeywordForChap.call(
             course_id: course_id,
             folder_id: id,
-            chapter_id: chapter_id,
+            chapter_id: id,
             chapter_name: name,
             folder_type: folder_type,
             priority: priority,
             keyword: json)
         end
-      else
-        info = keyword.map do |id, s|
+      elsif !conceptInfo.empty? and keyword.empty?
+        info = conceptInfo.map do |id, s|
+          folder_id = Folder.where(chapter_id: id, folder_type:'concepts').first.id
+          name = Folder[id].name
           if s.any?
-            chapter_id = Folder[id].chapter_id
-            folder_type = Folder[id].folder_type
             priority = 2
-            json = SlideTfidf.call(arr: slideInfo, signal: s, type: 'keyword')
-            if conceptInfo.any?
-              json = SlideConceptMix.call(slide: json, concept: conceptInfo)
-            end
-            name = Folder[id].name
-            CreateKeywordForChap.call(
-              course_id: course_id,
-              folder_id: id,
-              chapter_id: chapter_id,
-              chapter_name: name,
-              folder_type: folder_type,
-              priority: priority,
-              keyword: json)
+            json = ConceptIdf.call(concept: conceptInfo[id])
           end
+          CreateKeywordForChap.call(
+            course_id: course_id,
+            folder_id: folder_id,
+            chapter_id: id,
+            chapter_name: name,
+            folder_type: 'slides',
+            priority: priority,
+            keyword: json)
+        end
+      elsif !keyword.empty? and conceptInfo.empty?
+        info = keyword.map do |id, s|
+          folder_id = Folder.where(chapter_id: id, folder_type:'slides').first.id
+          folder_type = Folder[folder_id].folder_type
+          name = Folder[folder_id].name
+          if s.any?
+            priority = 2
+            json = ConvertJson.call(cid: course_id, chid: id)
+          end
+          CreateKeywordForChap.call(
+            course_id: course_id,
+            folder_id: folder_id,
+            chapter_id: id,
+            chapter_name: name,
+            folder_type: folder_type,
+            priority: priority,
+            keyword: json)
         end
       end
       JSON.pretty_generate(data: coursename, content: info)
