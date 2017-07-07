@@ -188,31 +188,31 @@ class KeywordCloudAPI < Sinatra::Base
     end
   end
 
-  get '/api/v1/accounts/:uid/:course_id/folders/:folder_id/files/:file_id/document' do
-    content_type 'text/plain'
-
-    begin
-      SimpleFile.where(folder_id: params[:folder_id], id: params[:file_id])
-                .first
-                .document
-      # GetFileContent.call(id: params[:file_id], folder_id: params[:folder_id])
-    rescue => e
-      logger.info "FAILED to process GET file(concepts & sildes) document: #{e.inspect}"
-      halt 404
-    end
-  end
-
-  get '/api/v1/accounts/:uid/:course_id/folders/:folder_id/:video_id/files/:file_id/document' do
-    content_type 'text/plain'
-
-    begin
-      Subtitle.where(folder_id: params[:folder_id], id: params[:file_id])
-              .first
-              .document
-      # GetFileContent.call(id: params[:file_id], folder_id: params[:folder_id])
-    rescue => e
-      logger.info "FAILED to process GET file(subtitles) document: #{e.inspect}"
-      halt 404
-    end
-  end
+  # get '/api/v1/accounts/:uid/:course_id/folders/:folder_id/files/:file_id/document' do
+  #   content_type 'text/plain'
+  #
+  #   begin
+  #     SimpleFile.where(folder_id: params[:folder_id], id: params[:file_id])
+  #               .first
+  #               .document
+  #     # GetFileContent.call(id: params[:file_id], folder_id: params[:folder_id])
+  #   rescue => e
+  #     logger.info "FAILED to process GET file(concepts & sildes) document: #{e.inspect}"
+  #     halt 404
+  #   end
+  # end
+  #
+  # get '/api/v1/accounts/:uid/:course_id/folders/:folder_id/:video_id/files/:file_id/document' do
+  #   content_type 'text/plain'
+  #
+  #   begin
+  #     Subtitle.where(folder_id: params[:folder_id], id: params[:file_id])
+  #             .first
+  #             .document
+  #     # GetFileContent.call(id: params[:file_id], folder_id: params[:folder_id])
+  #   rescue => e
+  #     logger.info "FAILED to process GET file(subtitles) document: #{e.inspect}"
+  #     halt 404
+  #   end
+  # end
 end
